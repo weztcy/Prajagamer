@@ -58,6 +58,7 @@ function InfoMitra() {
       </div>
 
       {/* Button Pilihan Menu */}
+      {/* Button Pilihan Menu */}
       <div className="absolute inset-0 bg-white h-[280px] md:h-[120px] lg:h-[120px] shadow-lg rounded-lg flex flex-col  justify-center items-end translate-y-72 px-5 py-5 md:px-10  mx-4 md:mx-7 mt-60">
         <div className="flex flex-col md:flex-row gap-5 md:gap-5 justify-center items-center w-full">
           <button
