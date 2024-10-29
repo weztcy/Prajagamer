@@ -18,7 +18,9 @@ const DataPengguna = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10); // State untuk jumlah item per halaman
   const [sortOption, setSortOption] = useState("newest"); // State untuk sorting
   const [error, setError] = useState(null); // State for error handling
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Function to check if user is logged in and fetch data
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -26,13 +28,21 @@ const DataPengguna = () => {
       localStorage.removeItem("token"); // Hapus token jika tidak ada
       window.location.href = "/loginadmin"; // Redirect ke halaman login
     } else {
-      fetchData(token); // Fetch data if token exists
+      fetchData(token);
     }
-  }, []);
+  }, []); // This only runs once, on component mount
+
+  // Fetch data again if status or pesertaData changes
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchData(token);
+    }
+  }, [pesertaData, sortOption]);
 
   const fetchData = async (token) => {
     try {
-      const response = await axios.get("http://localhost:5000/api/users", {
+      const response = await axios.get("https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/users", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -71,17 +81,32 @@ const DataPengguna = () => {
     XLSX.writeFile(workbook, "Data_Pengguna_Magang.xlsx");
   };
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
+  // Menggabungkan fungsi handleSortChange dan handleDropdownToggle
+  const handleDropdownToggle = () => {
+    setIsDropdownOpen(!isDropdownOpen); // Toggle dropdown open/close
   };
+
+  // Memperbarui handleSortChange agar menerima event dari dropdown dan close dropdown setelah perubahan
+  const handleSortChange = (e) => {
+    const selectedOption = e.target ? e.target.value : e; // Check if event or direct option is passed
+    setSortOption(selectedOption); // Update the sorting option
+    setIsDropdownOpen(false); // Close the dropdown after selecting
+  };
+
+  // Mengelola perubahan halaman
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber); // Update the current page
+  };
+
+  const sortOptions = [
+    { value: "newest", label: "Data Terbaru" },
+    { value: "oldest", label: "Data Terlama" },
+    { value: "alphabetical", label: "Berdasarkan Abjad" },
+  ];
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
-  };
-
-  const handleSortChange = (e) => {
-    setSortOption(e.target.value);
   };
 
   const handleItemsPerPageChange = (e) => {
@@ -136,9 +161,9 @@ const DataPengguna = () => {
     }
 
     let message = "";
-    if (status === "Accepted") {
+    if (status === "Verifying") {
       message = `Selamat, akun Anda telah diterima!`;
-    } else if (status === "Rejected") {
+    } else if (status === "NotVerifying") {
       message = `Maaf, akun Anda tidak dapat kami terima.`;
     }
 
@@ -146,41 +171,39 @@ const DataPengguna = () => {
       ? `62${phoneNumber.slice(1)}`
       : `62${phoneNumber}`;
 
-    const whatsappURL = `https://api.whatsapp.com/send?phone=${formattedPhoneNumber}&text=${encodeURIComponent(
+    // Buat URL WhatsApp API dengan pesan yang sudah di-encode
+    const whatsappURL = `https://wa.me/${formattedPhoneNumber}?text=${encodeURIComponent(
       message
     )}`;
 
+    // Membuka URL WhatsApp
     window.open(whatsappURL, "_blank");
   };
 
   const handleUpdateStatus = async (id, status, index) => {
     const token = localStorage.getItem("token");
     let data = { userId: id, status: status };
-
+    console.log("DATA PPENGGUNA", data);
     if (!token) {
       window.location.href = "/loginadmin";
       return;
     }
 
     try {
-      await axios.put("http://localhost:5000/api/users/status", data, {
+      await axios.put("https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/users/status", data, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-      // Refresh data after update
-      const response = await axios.get("http://localhost:5000/api/users", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setPesertaData(response.data);
+
+      // Fetch updated data
+      fetchData(token);
     } catch (error) {
       console.error("Error updating status:", error);
     }
-
-    const notelp = pesertaData[index].Profile.telp_user;
+    console.log(pesertaData); // Cek struktur data
+    const notelp = pesertaData[index]?.Profile?.telp_user; // Cek apakah 'notelp' valid
     sendWhatsAppMessage(notelp, status);
   };
 
@@ -221,39 +244,17 @@ const DataPengguna = () => {
 
             {/* Dropdown Sorting */}
             <div className="relative inline-block">
-              <div className="flex items-center border rounded-lg p-2 bg-yellow-500 text-white font-semibold w-[191px] pl-3">
-                <select
-                  value={sortOption}
-                  onChange={handleSortChange}
-                  style={{
-                    color: "white",
-                    backgroundColor: "transparent",
-                    cursor: "pointer",
-                    outline: "none",
-                    border: "none",
-                    width: "100%",
-                  }}
-                  className="flex-grow appearance-none focus:outline-none font-semibold"
-                >
-                  <option
-                    value="newest"
-                    style={{ backgroundColor: "white", color: "black" }}
-                  >
-                    Data Terbaru
-                  </option>
-                  <option
-                    value="oldest"
-                    style={{ backgroundColor: "white", color: "black" }}
-                  >
-                    Data Terlama
-                  </option>
-                  <option
-                    value="alphabetical"
-                    style={{ backgroundColor: "white", color: "black" }}
-                  >
-                    Berdasarkan Abjad
-                  </option>
-                </select>
+              {/* Wrapper div for the dropdown */}
+              <div
+                className="flex items-center border rounded-lg p-2 bg-yellow-500 text-white font-semibold w-[191px]cursor-pointer"
+                onClick={handleDropdownToggle} // This will toggle dropdown on click
+              >
+                <span>
+                  {
+                    sortOptions.find((option) => option.value === sortOption)
+                      ?.label
+                  }
+                </span>
                 {sortOption === "newest" && (
                   <ArrowDownIcon className="inline w-8 h-4 ml-2" />
                 )}
@@ -264,6 +265,23 @@ const DataPengguna = () => {
                   <ArrowsRightLeftIcon className="inline w-8 h-4 ml-2" />
                 )}
               </div>
+
+              {/* Dropdown content */}
+              {isDropdownOpen && (
+                <div className="absolute left-0 mt-2 bg-white border rounded-lg shadow-lg">
+                  <ul>
+                    {sortOptions.map((option) => (
+                      <li
+                        key={option.value}
+                        onClick={() => handleSortChange(option.value)}
+                        className="cursor-pointer p-2 hover:bg-gray-200"
+                      >
+                        {option.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Tombol Export */}
@@ -299,32 +317,34 @@ const DataPengguna = () => {
               </thead>
               <tbody>
                 {currentData.map((peserta, index) => (
-                  <tr key={index}>
-                    <td className="py-2 px-4 border-b">{peserta.name}</td>
+                  <tr key={peserta.id}>
                     <td className="py-2 px-4 border-b">
-                      {peserta?.University?.nim || "tidak terisi"}
+                      {peserta.name || "Kosong"}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta?.Profile?.nik || "tidak terisi"}
+                      {peserta?.University?.nim || "Kosong"}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta?.email || "tidak terisi"}
+                      {peserta?.Profile?.nik || "Kosong"}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta?.Profile?.telp_user || "tidak terisi"}
+                      {peserta.email || "Kosong"}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta?.University?.univ_name || "tidak terisi"}
+                      {peserta?.Profile?.telp_user || "Kosong"}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta?.University?.major || "tidak terisi"}
+                      {peserta?.University?.univ_name || "Kosong"}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta.Profile.photo ? (
+                      {peserta?.University?.major || "Kosong"}
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      {peserta?.Profile?.photo ? (
                         <a
                           href={
-                            "http://localhost:5000/uploads/" +
-                            peserta.Profile.photo
+                            "https://backend-prajagamer-920196572245.asia-southeast2.run.app/uploads/" +
+                            peserta?.Profile?.photo
                           }
                           target="_blank"
                           rel="noopener noreferrer"
@@ -333,14 +353,15 @@ const DataPengguna = () => {
                           Lihat Foto
                         </a>
                       ) : (
-                        "Foto tidak tersedia"
+                        "File Tidak Tersedia"
                       )}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta.Regist.cv ? (
+                      {peserta?.Regist?.cv ? (
                         <a
                           href={
-                            "http://localhost:5000/uploads/" + peserta.Regist.cv
+                            "https://backend-prajagamer-920196572245.asia-southeast2.run.app/uploads/" +
+                            peserta?.Regist?.cv
                           }
                           target="_blank"
                           rel="noopener noreferrer"
@@ -349,47 +370,84 @@ const DataPengguna = () => {
                           Lihat CV
                         </a>
                       ) : (
-                        "CV tidak tersedia"
+                        "File Tidak Tersedia"
                       )}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {peserta.Regist.score_list ? (
+                      {peserta?.Regist?.score_list ? (
                         <a
                           href={
-                            "http://localhost:5000/uploads/" +
-                            peserta.Regist.score_list
+                            "https://backend-prajagamer-920196572245.asia-southeast2.run.app/uploads/" +
+                            peserta?.Regist?.score_list
                           }
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-500 hover:underline"
                         >
-                          Lihat Transkrip
+                          Lihat Daftar Nilai
                         </a>
                       ) : (
-                        "Transkrip tidak tersedia"
+                        "File Tidak Tersedia"
                       )}
                     </td>
                     <td className="py-2 px-4 border-b">
                       {formatDate(peserta.createdAt)}
                     </td>
-                    <td className="py-2 px-4 border-b">{peserta.status}</td>
-                    <td className="py-2 px-4 border-b flex flex-row w-72">
-                      <button
-                        onClick={() =>
-                          handleUpdateStatus(peserta.user_id, "Accepted", index)
-                        }
-                        className="ml-2 px-4 py-2 w-full bg-green-500 text-white rounded-lg hover:bg-green-600 hover:underline"
+                    <td className="py-2 px-4 border-b">
+                      <span
+                        className={`${
+                          peserta.status === "Verifying"
+                            ? "text-green-500"
+                            : peserta.status === "NotVerifying"
+                            ? "text-red-500"
+                            : peserta.status === "Pending"
+                            ? "text-black"
+                            : ""
+                        }`}
                       >
-                        Terima
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleUpdateStatus(peserta.user_id, "Rejected", index)
-                        }
-                        className="ml-2 px-4 py-2 w-full bg-red-500 text-white rounded-lg hover:bg-red-600 hover:underline"
-                      >
-                        Tolak
-                      </button>
+                        {peserta.status}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      <div className="flex items-center justify-center space-x-2">
+                        {/* Tampilkan tombol "Terima" hanya jika statusnya bukan "NotVerifying" */}
+                        {peserta.status !== "NotVerifying" && (
+                          <button
+                            onClick={() =>
+                              handleUpdateStatus(peserta.id, "Verifying", index)
+                            }
+                            className={`px-3 py-1 text-white rounded ${
+                              peserta.status === "Verifying"
+                                ? "bg-gray-400 cursor-not-allowed" // Jika status Verifying, tombol Terima disabled
+                                : "bg-green-500" // Tombol aktif jika status bukan Verifying
+                            }`}
+                            disabled={peserta.status === "Verifying"} // Disabled jika status Verifying
+                          >
+                            Terima
+                          </button>
+                        )}
+
+                        {/* Tampilkan tombol "Tolak" hanya jika statusnya bukan "Verifying" */}
+                        {peserta.status !== "Verifying" && (
+                          <button
+                            onClick={() =>
+                              handleUpdateStatus(
+                                peserta.id,
+                                "NotVerifying",
+                                index
+                              )
+                            }
+                            className={`px-3 py-1 text-white rounded ${
+                              peserta.status === "NotVerifying"
+                                ? "bg-gray-400 cursor-not-allowed" // Jika status NotVerifying, tombol Tolak disabled
+                                : "bg-red-500" // Tombol aktif jika status bukan NotVerifying
+                            }`}
+                            disabled={peserta.status === "NotVerifying"} // Disabled jika status NotVerifying
+                          >
+                            Tolak
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

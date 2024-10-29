@@ -28,64 +28,134 @@ const DashboardAdmin = () => {
   const [sortOption, setSortOption] = useState("newest"); // State untuk sorting
   const [itemsPerPage, setItemsPerPage] = useState(10); // State untuk jumlah item per halaman
   const [currentPage, setCurrentPage] = useState(1); // State untuk halaman saat ini
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Function to check if user is logged in and fetch data
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Anda belum login. Silakan login terlebih dahulu.");
+      localStorage.removeItem("token"); // Hapus token jika tidak ada
+      window.location.href = "/loginadmin"; // Redirect ke halaman login
+    } else {
+      fetchDataTabel(token);
+    }
+  }, []); // This only runs once, on component mount
 
   useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Anda belum login. Silakan login terlebih dahulu.");
-        window.location.href = "/loginadmin";
-        return;
-      }
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchDataTabel(token);
+    }
+  }, [applicantsData, sortOption]);
 
-      try {
-        const response = await axios.get(
-          "http://localhost:5000/api/admin/dashboard",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+  const fetchData = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Anda belum login. Silakan login terlebih dahulu.");
+      window.location.href = "/loginadmin";
+      return;
+    }
 
-        setApplicantsData(response.data.applicantsList || []);
-        setTotalApplicants(response.data.totalApplicants || 0);
-        setVerifyingApplicants(response.data.verifyingApplicants || 0);
-        setAcceptedApplicants(response.data.acceptedApplicants || 0);
-        setRejectedApplicants(response.data.rejectedApplicants || 0);
-      } catch (error) {
-        console.error("Error fetching applicants data:", error);
-
-        if (error.response && error.response.status === 401) {
-          setError("Akses tidak diizinkan. Silakan login ulang.");
-          localStorage.removeItem("token");
-          window.location.href = "/loginadmin";
-        } else {
-          setError("Data tidak dapat diambil");
+    try {
+      const response = await axios.get(
+        "https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/admin/dashboard",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      }
-    };
+      );
 
-    fetchData();
-  }, []);
+      // console.log("dashboard", response)
+      setApplicantsData(response?.data?.applicantsList || []);
+      setTotalApplicants(response?.data?.totalApplicants || 0);
+      setVerifyingApplicants(response?.data?.verifyingApplicants || 0);
+      setAcceptedApplicants(response?.data?.acceptedApplicants || 0);
+      setRejectedApplicants(response?.data?.rejectedApplicants || 0);
+    } catch (error) {
+      console.error("Error fetching applicants data:", error);
+
+      if (error.response && error.response.status === 401) {
+        setError("Akses tidak diizinkan. Silakan login ulang.");
+        localStorage.removeItem("token");
+        window.location.href = "/loginadmin";
+      } else {
+        setError("Data tidak dapat diambil");
+      }
+    }
+  };
+
+  const fetchDataTabel = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Anda belum login. Silakan login terlebih dahulu.");
+      window.location.href = "/loginadmin";
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        "https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/admin/dashboard",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setApplicantsData(response?.data?.applicantsList || []);
+      setTotalApplicants(response?.data?.totalApplicants || 0);
+      setVerifyingApplicants(response?.data?.verifyingApplicants || 0);
+      setAcceptedApplicants(response?.data?.acceptedApplicants || 0);
+      setRejectedApplicants(response?.data?.rejectedApplicants || 0);
+    } catch (error) {
+      console.error("Error fetching applicants data:", error);
+
+      if (error.response && error.response.status === 401) {
+        setError("Akses tidak diizinkan. Silakan login ulang.");
+        localStorage.removeItem("token");
+        window.location.href = "/loginadmin";
+      } else {
+        setError("Data tidak dapat diambil");
+      }
+    }
+  };
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1); // Reset halaman ke 1 saat pencarian
   };
 
-  const handleSortChange = (e) => {
-    setSortOption(e.target.value);
+  // Menggabungkan fungsi handleSortChange dan handleDropdownToggle
+  const handleDropdownToggle = () => {
+    setIsDropdownOpen(!isDropdownOpen); // Toggle dropdown open/close
   };
 
+  // Memperbarui handleSortChange agar menerima event dari dropdown dan close dropdown setelah perubahan
+  const handleSortChange = (e) => {
+    const selectedOption = e.target ? e.target.value : e; // Check if event or direct option is passed
+    setSortOption(selectedOption); // Update the sorting option
+    setIsDropdownOpen(false); // Close the dropdown after selecting
+  };
+
+  // Opsi urutan sort
+  const sortOptions = [
+    { value: "newest", label: "Data Terbaru" },
+    { value: "oldest", label: "Data Terlama" },
+    { value: "alphabetical", label: "Berdasarkan Abjad" },
+  ];
+
+  // Mengubah jumlah item per halaman dan reset halaman ke 1
   const handleItemsPerPageChange = (e) => {
-    setItemsPerPage(parseInt(e.target.value, 10));
+    setItemsPerPage(parseInt(e.target.value, 10)); // Mengubah jumlah item per halaman
     setCurrentPage(1); // Reset halaman ke 1 saat jumlah item per halaman berubah
   };
 
+  // Mengelola perubahan halaman dengan validasi batas halaman
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
+      setCurrentPage(newPage); // Update halaman jika dalam rentang yang valid
     }
   };
 
@@ -133,47 +203,45 @@ const DashboardAdmin = () => {
       message = `Maaf, lamaran magang Anda tidak dapat kami terima. Terima kasih telah mendaftar dan tetap semangat!`;
     }
 
+    // Format nomor telepon dengan kode negara Indonesia
     const formattedPhoneNumber = phoneNumber.startsWith("0")
       ? `62${phoneNumber.slice(1)}`
       : `62${phoneNumber}`;
 
-    const whatsappURL = `https://api.whatsapp.com/send?phone=${formattedPhoneNumber}&text=${encodeURIComponent(
+    // Buat URL WhatsApp API dengan pesan yang sudah di-encode
+    const whatsappURL = `https://wa.me/${formattedPhoneNumber}?text=${encodeURIComponent(
       message
     )}`;
 
-    console.log("Opening WhatsApp URL:", whatsappURL);
+    // Buka URL di tab baru
     window.open(whatsappURL, "_blank");
   };
 
   const handleUpdateStatus = async (id, status, index) => {
     const token = localStorage.getItem("token");
     let data = { userId: id, status: status };
-
+    console.log("DATA PPENGGUNA", data);
     if (!token) {
-      setError("Anda belum login. Silakan login terlebih dahulu.");
       window.location.href = "/loginadmin";
       return;
     }
 
     try {
-      await axios.put("http://localhost:5000/api/users/status2", data, {
+      await axios.put("https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/users/status2", data, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
+
+      // Fetch updated data
+      fetchDataTabel(token);
     } catch (error) {
       console.error("Error updating status:", error);
     }
-
-    const response = await axios.get("http://localhost:5000/api/users2", {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const notelp = response.data[index].Profile.telp_user;
+    console.log("DATA teampil", applicantsData); // Cek struktur data
+    const notelp = applicantsData[index]?.user?.Profile?.telp_user; // Cek apakah 'notelp' valid
+    console.log("no telpon", notelp);
     sendWhatsAppMessage(notelp, status);
   };
 
@@ -218,7 +286,7 @@ const DashboardAdmin = () => {
             </div>
 
             <div className="mt-8 bg-white p-4 rounded-lg shadow relative">
-              <h3 className="text-3xl font-bold mb-5  border-b-2 pb-4 pt-2 mb-8">
+              <h3 className="text-3xl font-bold border-b-2 pb-4 pt-2 mb-8">
                 Data Pelamar
               </h3>
               <div className="flex justify-between items-center border-gray-300 pb-2 mb-4">
@@ -253,39 +321,18 @@ const DashboardAdmin = () => {
 
                   {/* Dropdown Sorting */}
                   <div className="relative inline-block">
-                    <div className="flex items-center border rounded-lg p-2 bg-yellow-500 text-white font-semibold w-[191px] pl-3">
-                      <select
-                        value={sortOption}
-                        onChange={handleSortChange}
-                        style={{
-                          color: "white",
-                          backgroundColor: "transparent",
-                          cursor: "pointer",
-                          outline: "none",
-                          border: "none",
-                          width: "100%",
-                        }}
-                        className="flex-grow appearance-none focus:outline-none font-semibold"
-                      >
-                        <option
-                          value="newest"
-                          style={{ backgroundColor: "white", color: "black" }}
-                        >
-                          Data Terbaru
-                        </option>
-                        <option
-                          value="oldest"
-                          style={{ backgroundColor: "white", color: "black" }}
-                        >
-                          Data Terlama
-                        </option>
-                        <option
-                          value="alphabetical"
-                          style={{ backgroundColor: "white", color: "black" }}
-                        >
-                          Berdasarkan Abjad
-                        </option>
-                      </select>
+                    {/* Wrapper div for the dropdown */}
+                    <div
+                      className="flex items-center border rounded-lg p-2 bg-yellow-500 text-white font-semibold w-[191px]cursor-pointer"
+                      onClick={handleDropdownToggle} // This will toggle dropdown on click
+                    >
+                      <span>
+                        {
+                          sortOptions.find(
+                            (option) => option.value === sortOption
+                          )?.label
+                        }
+                      </span>
                       {sortOption === "newest" && (
                         <ArrowDownIcon className="inline w-8 h-4 ml-2" />
                       )}
@@ -296,9 +343,25 @@ const DashboardAdmin = () => {
                         <ArrowsRightLeftIcon className="inline w-8 h-4 ml-2" />
                       )}
                     </div>
-                  </div>
 
-                  <Link to="/hasildaftarmagang">
+                    {/* Dropdown content */}
+                    {isDropdownOpen && (
+                      <div className="absolute left-0 mt-2 bg-white border rounded-lg shadow-lg">
+                        <ul>
+                          {sortOptions.map((option) => (
+                            <li
+                              key={option.value}
+                              onClick={() => handleSortChange(option.value)}
+                              className="cursor-pointer p-2 hover:bg-gray-200"
+                            >
+                              {option.label}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  <Link to="/datapelamar">
                     <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
                       Lihat Selengkapnya
                     </button>
@@ -343,33 +406,64 @@ const DashboardAdmin = () => {
                             ).toLocaleDateString()}
                           </td>
                           <td className="py-2 px-4 border-b">
-                            {peserta.user.status}
+                            <span
+                              className={`${
+                                peserta.user.status === "Accepted"
+                                  ? "text-green-500"
+                                  : peserta.user.status === "Rejected"
+                                  ? "text-red-500"
+                                  : peserta.user.status === "Verifying"
+                                  ? "text-black"
+                                  : ""
+                              }`}
+                            >
+                              {peserta.user.status}
+                            </span>
                           </td>
-                          <td className="py-2 px-4 border-b flex flex-row">
-                            <button
-                              className="ml-2 px-4 py-2 w-full bg-green-500 text-white rounded-lg hover:bg-green-600"
-                              onClick={() =>
-                                handleUpdateStatus(
-                                  peserta.user_id,
-                                  "Accepted",
-                                  index
-                                )
-                              }
-                            >
-                              Terima
-                            </button>
-                            <button
-                              className="ml-2 px-4 py-2 w-full bg-red-500 text-white rounded-lg hover:bg-red-600"
-                              onClick={() =>
-                                handleUpdateStatus(
-                                  peserta.user_id,
-                                  "Rejected",
-                                  index
-                                )
-                              }
-                            >
-                              Tolak
-                            </button>
+                          <td className="py-2 px-4 border-b ">
+                            <div className="flex items-center justify-center space-x-2">
+                              {/* Tampilkan tombol "Terima" hanya jika statusnya bukan "Accepted" */}
+                              {peserta.user.status !== "Rejected" && (
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(
+                                      peserta.user_id,
+                                      "Accepted",
+                                      index
+                                    )
+                                  }
+                                  className={`px-3 py-1 text-white rounded ${
+                                    peserta.user.status === "Accepted"
+                                      ? "bg-gray-400 cursor-not-allowed" // Jika status Accepted, tombol Terima disabled
+                                      : "bg-green-500" // Tombol aktif jika status bukan Accepted
+                                  }`}
+                                  disabled={peserta.user.status === "Accepted"} // Disabled jika status Accepted
+                                >
+                                  Terima
+                                </button>
+                              )}
+
+                              {/* Tampilkan tombol "Tolak" hanya jika statusnya bukan "Accepted" */}
+                              {peserta.user.status !== "Accepted" && (
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(
+                                      peserta.user_id,
+                                      "Rejected",
+                                      index
+                                    )
+                                  }
+                                  className={`px-3 py-1 text-white rounded ${
+                                    peserta.user.status === "Rejected"
+                                      ? "bg-gray-400 cursor-not-allowed" // Jika status Rejected, tombol Tolak disabled
+                                      : "bg-red-500" // Tombol aktif jika status bukan Rejected
+                                  }`}
+                                  disabled={peserta.user.status === "Rejected"} // Disabled jika status Rejected
+                                >
+                                  Tolak
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))

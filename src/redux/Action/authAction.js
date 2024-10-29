@@ -5,7 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 export const login = (data, navigate) => async (dispatch, getState) => {
   try {
-    const response = await axios.post(`http://localhost:5000/api/user/login`, data, {
+    const response = await axios.post(`https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/user/login`, data, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -14,20 +14,6 @@ export const login = (data, navigate) => async (dispatch, getState) => {
     if (response.status === 200) {
       const user = response.data.user;
 
-      // Cek status akun
-      if (user.status === "Pending") {
-        toast.error("Akun anda belum terverifikasi, silahkan hubungi admin.", {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "colored",
-        });
-        return; // Jangan lanjutkan login jika status akun "Pending"
-      }
 
       // Jika status akun aktif, lanjutkan proses login
       dispatch(setToken(response.data.token));
@@ -96,13 +82,14 @@ export const login = (data, navigate) => async (dispatch, getState) => {
     }
   }
 };
+
 export const register = (data, navigate) => async (dispatch, getState) => {
   console.log("Isi data:", data);
 
   try {
     // Mengirimkan permintaan POST ke API register dengan formData dan header multipart/form-data
     const response = await axios.post(
-      `http://localhost:5000/api/user/register`,
+      `https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/user/register`,
       data,
       {
         headers: {
@@ -115,7 +102,7 @@ export const register = (data, navigate) => async (dispatch, getState) => {
     if (response.status === 201) {
       console.log("Register Berhasil:", response);
       alert("Registrasi berhasil!");
-      navigate("/login");
+      navigate("/loginopsi");
     }
   } catch (error) {
     // Penanganan kesalahan saat melakukan permintaan

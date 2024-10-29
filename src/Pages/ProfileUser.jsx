@@ -13,7 +13,7 @@ const ProfilePage = () => {
   const token = useSelector((state) => state.auth.token);
   useEffect(() => {
     if (!token) {
-      navigate("/login");
+      navigate("/loginopsi");
     }
   });
   
@@ -41,7 +41,7 @@ useEffect(() => {
           >
             <img
               className="w-60 h-60 rounded-full shadow-lg"
-              src={'http://localhost:5000/uploads/'+ dataProfil?.photo}
+              src={'https://backend-prajagamer-920196572245.asia-southeast2.run.app/uploads/'+ dataProfil?.photo}
               alt="Profile"
             />
           </div>

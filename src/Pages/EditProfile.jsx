@@ -4,11 +4,13 @@ import Navbar from "../Components/navbar";
 import Footer from "../Components/Footer";
 import Profile from "../assets/Pictures/logodisdukcapil.png";
 import { PencilSquareIcon } from "@heroicons/react/24/solid";
-import Cropper from "react-cropper";
+// import Cropper from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { getDataProfil, postUpdateProfil } from "../redux/Action/profileAction";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const EditProfilePage = () => {
   const dispatch = useDispatch();
@@ -37,7 +39,7 @@ const EditProfilePage = () => {
     namaPembimbing: dataEditProfile.name_supervisor,
     noTelpPembimbing: dataEditProfile.telp_supervisor,
     emailPembimbing: dataEditProfile.email_supervisor,
-    fotoProfil: "http://localhost:5000/uploads/" + dataEditProfile.photo,
+    fotoProfil: "https://backend-prajagamer-920196572245.asia-southeast2.run.app/uploads/" + dataEditProfile.photo,
     provinsiDomisili: dataEditProfile.province_domicile,
     provinsiKTP: dataEditProfile.province_ktp,
   });
@@ -52,7 +54,7 @@ const EditProfilePage = () => {
 
   useEffect(() => {
     axios
-      .get("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
+      .get("https://backend-prajagamer-920196572245.asia-southeast2.run.app/api/profile")
       .then((response) => {
         setProvinsiList(response.data);
       })
@@ -65,7 +67,7 @@ const EditProfilePage = () => {
   const token = useSelector((state) => state.auth.token);
   useEffect(() => {
     if (!token) {
-      navigate("/login");
+      navigate("/loginopsi");
     }
   });
 
@@ -167,10 +169,43 @@ const EditProfilePage = () => {
 
   const handleImageChange = (file) => {
     if (file) {
-      const previewUrl = URL.createObjectURL(file); // Buat URL sementara untuk preview gambar
+      // Validasi format file
+      const validFormats = ['image/png', 'image/jpeg', 'image/jpg'];
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+  
+      if (!validFormats.includes(file.type)) {
+        toast.error("Format foto tidak valid! Harus PNG, JPG, atau JPEG.", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+        });
+        return; // Keluar dari fungsi jika format tidak valid
+      }
+  
+      if (file.size > maxSizeInBytes) {
+        toast.error("Ukuran foto terlalu besar! Maksimal 5MB.", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "colored",
+        });
+        return; // Keluar dari fungsi jika ukuran file tidak valid
+      }
+  
+      // Jika validasi lulus, buat URL untuk preview gambar
+      const previewUrl = URL.createObjectURL(file);
       setFormData((prev) => ({
         ...prev,
-        fotoProfil: file, // Set URL sementara untuk menampilkan gambar baru
+        fotoProfil: file, // Set file yang valid
         previewFoto: previewUrl,
       }));
     }
@@ -510,8 +545,9 @@ const EditProfilePage = () => {
                     type="text"
                     name="jurusan"
                     value={formData.jurusan}
-                    onChange={handleChange}
-                    className="w-full border rounded px-3 py-2"
+                   
+                    readOnly
+                    className="w-full border rounded px-3 py-2 cursor-not-allowed"
                   />
                 </div>
                 <div className="mt-4">
